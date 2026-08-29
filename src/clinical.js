@@ -1,76 +1,9 @@
-export const BIOMARKERS = [
-  'EGFR',
-  'ALK',
-  'ROS1',
-  'BRAF V600E',
-  'KRAS G12C',
-  'MET exon 14',
-  'RET',
-  'NTRK',
-  'HER2 / ERBB2',
-  'PD-L1',
-];
-
-export function getDoctorBlockers(state) {
-  const d = state.doctorReview;
-  const blockers = [];
-  if (!d.diagnosisConfirmed) blockers.push('Chưa xác nhận chẩn đoán mô bệnh học.');
-  if (!d.pathologyReviewed) blockers.push('Chưa review mô bệnh học / độ đầy đủ mẫu.');
-  if (!d.stagingReviewed) blockers.push('Chưa hoàn tất review staging.');
-  if (d.n2Status === 'suspected' && !d.nodalConfirmationPlan.trim()) {
-    blockers.push('N2 đang nghi ngờ nhưng chưa ghi kế hoạch xác nhận hạch.');
-  }
-  if (d.diseaseExtent === 'advanced' && d.biomarkerStatus !== 'complete') {
-    blockers.push('Bệnh tiến xa nhưng biomarker / PD-L1 chưa hoàn tất.');
-  }
-  if (!d.mdtDecision.trim()) blockers.push('Chưa ghi kết luận MDT.');
-  if (!d.plan.trim()) blockers.push('Chưa có kế hoạch bàn giao cho bệnh nhân.');
-  return blockers;
-}
-
-export function getDataCompleteness(state) {
-  const d = state.doctorReview;
-  const checks = [
-    d.diagnosisConfirmed,
-    d.pathologyReviewed,
-    d.stagingReviewed,
-    Boolean(d.diseaseExtent),
-    d.n2Status !== 'suspected' || Boolean(d.nodalConfirmationPlan.trim()),
-    d.diseaseExtent !== 'advanced' || d.biomarkerStatus === 'complete',
-    Boolean(d.mdtDecision.trim()),
-    Boolean(d.plan.trim()),
-  ];
-  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-}
-
-export function clinicalPrompts(state) {
-  const d = state.doctorReview;
-  const prompts = [];
-  if (!d.diagnosisConfirmed) {
-    prompts.push({ level: 'warning', title: 'Tissue first', text: 'Ưu tiên xác nhận mô bệnh học trước khi đi sâu vào nhánh điều trị.' });
-  }
-  if (d.n2Status === 'suspected') {
-    prompts.push({ level: 'warning', title: 'N2 cần xác nhận', text: 'Nếu tình trạng hạch làm thay đổi chiến lược, cần ghi rõ kế hoạch xác nhận xâm lấn phù hợp.' });
-  }
-  if (d.diseaseExtent === 'advanced' && d.biomarkerStatus !== 'complete') {
-    prompts.push({ level: 'warning', title: 'Thiếu biomarker', text: 'Không chốt nhánh điều trị toàn thân khi dữ liệu driver alterations / PD-L1 còn thiếu.' });
-  }
-  if (state.patient.redFlags?.length) {
-    prompts.push({ level: 'danger', title: 'Có red flag', text: 'Ưu tiên đánh giá triệu chứng khẩn trước luồng ung thư thường quy.' });
-  }
-  if (!prompts.length) {
-    prompts.push({ level: 'success', title: 'Không có blocker dữ liệu lớn', text: 'Có thể tiếp tục tổng hợp MDT với dữ liệu hiện tại; vẫn cần bác sĩ xác nhận.' });
-  }
-  return prompts;
-}
-
-export const EVIDENCE_NOTES = [
-  {
-    label: 'TNM 9',
-    text: 'Prototype tham chiếu cấu trúc IASLC TNM 9th edition; staging hiển thị trong demo không thay thế staging chính thức.',
-  },
-  {
-    label: 'Biomarker',
-    text: 'Checklist biomarker dùng để theo dõi độ đầy đủ dữ liệu. Ứng dụng không tự chọn thuốc hoặc phác đồ.',
-  },
-];
+export const BIOMARKERS=['EGFR','ALK','ROS1','BRAF V600E','KRAS G12C','MET exon 14','RET','NTRK','HER2 / ERBB2','PD-L1'];
+export function patientSymptomUrgent(r={}){return Boolean(r.submittedAt)&&(r.hemoptysis||r.confusion||r.chestPain||r.dyspnea==='Tăng nhiều')}
+export function nurseUrgent(i={}){const has=i.spo2!==''&&i.spo2!==null&&i.spo2!==undefined;return(has&&Number(i.spo2)<90)||String(i.dyspnea||'').toLowerCase().includes('nặng')||Object.values(i.redFlags||{}).some(Boolean)}
+export function getNurseBlockers(i){const b=[];if(!i.spo2||!i.heartRate||!i.dyspnea)b.push('Thiếu sinh hiệu hoặc mức khó thở.');if(nurseUrgent(i)&&!i.escalationAcknowledged)b.push('Có red flag/cảnh báo khẩn nhưng chưa xác nhận đã escalated cho bác sĩ.');if(!i.medicationSafety.allergiesReviewed)b.push('Chưa rà soát dị ứng thuốc.');if(!i.medicationSafety.medicationsReviewed)b.push('Chưa medication reconciliation.');if(!i.education.identityConfirmed)b.push('Chưa xác nhận danh tính trước giáo dục/bàn giao.');if(!i.education.teachBackCompleted)b.push('Chưa hoàn tất teach-back.');if(!i.handoff.situation?.trim()||!i.handoff.assessment?.trim()||!i.handoff.recommendation?.trim())b.push('SBAR chưa đủ Situation / Assessment / Recommendation.');return b}
+export function getDoctorBlockers(state){const d=state.doctorReview,b=[];if(!d.diagnosisConfirmed)b.push('Chưa xác nhận chẩn đoán mô bệnh học.');if(!d.pathologyReviewed)b.push('Chưa review mô bệnh học / độ đầy đủ mẫu.');if(!d.stagingInput?.calculatedStage)b.push('Chưa có stage group TNM 9 từ T/N/M có cấu trúc.');if(!d.stagingReviewed)b.push('Chưa hoàn tất review staging.');if(d.n2Status==='suspected'&&!d.nodalConfirmationPlan.trim())b.push('N2 đang nghi ngờ nhưng chưa ghi kế hoạch xác nhận hạch.');if(d.diseaseExtent==='advanced'&&d.biomarkerStatus!=='complete')b.push('Bệnh tiến xa nhưng biomarker / PD-L1 chưa hoàn tất.');if(!d.mdtDecision.trim())b.push('Chưa ghi kết luận MDT.');if(!d.plan.trim())b.push('Chưa có kế hoạch bàn giao cho bệnh nhân.');return b}
+export function getDataCompleteness(state){const d=state.doctorReview,checks=[d.diagnosisConfirmed,d.pathologyReviewed,Boolean(d.stagingInput?.calculatedStage),d.stagingReviewed,Boolean(d.diseaseExtent),d.n2Status!=='suspected'||Boolean(d.nodalConfirmationPlan.trim()),d.diseaseExtent!=='advanced'||d.biomarkerStatus==='complete',Boolean(d.mdtDecision.trim()),Boolean(d.plan.trim())];return Math.round(checks.filter(Boolean).length/checks.length*100)}
+export function clinicalPrompts(state){const d=state.doctorReview,p=[];if(nurseUrgent(state.intake))p.push({level:'danger',title:'Red flag từ intake',text:'Ưu tiên đánh giá triệu chứng/an toàn trước workflow ung thư thường quy.'});if(patientSymptomUrgent(state.patientEducation?.symptomReport))p.push({level:'danger',title:'Cập nhật triệu chứng khẩn',text:'Bệnh nhân đã gửi triệu chứng cảnh báo; cần team xem ưu tiên.'});if(!d.diagnosisConfirmed)p.push({level:'warning',title:'Tissue first',text:'Ưu tiên xác nhận mô bệnh học trước khi đi sâu vào nhánh điều trị.'});if(!d.stagingInput?.calculatedStage)p.push({level:'warning',title:'TNM chưa đủ',text:'Chọn đủ T/N/M và tính stage group TNM 9; app không suy diễn descriptor bị thiếu.'});if(d.n2Status==='suspected')p.push({level:'warning',title:'N2 cần xác nhận',text:'Nếu tình trạng hạch làm thay đổi chiến lược, ghi rõ kế hoạch xác nhận phù hợp.'});if(d.diseaseExtent==='advanced'&&d.biomarkerStatus!=='complete')p.push({level:'warning',title:'Thiếu biomarker',text:'Không chốt nhánh điều trị toàn thân khi driver alterations / PD-L1 còn thiếu.'});if(!p.length)p.push({level:'success',title:'Không có blocker dữ liệu lớn',text:'Có thể tiếp tục tổng hợp MDT với dữ liệu hiện tại; vẫn cần bác sĩ xác nhận.'});return p}
+export function clinicalSnapshot(state){const i=state.intake,h=i.handoff||{},m=i.medicationSafety||{},r=state.patientEducation?.symptomReport||{};return{urgent:nurseUrgent(i)||patientSymptomUrgent(r),sbar:`${h.assessment||'Chưa có Assessment'} · ${h.recommendation||'Chưa có Recommendation'}`,medication:m.allergiesReviewed&&m.medicationsReviewed?'Đã rà soát thuốc/dị ứng':'Medication safety chưa đủ',patientUpdate:r.submittedAt?`${r.dyspnea}; đau ${r.pain}/10${r.note?` · ${r.note}`:''}`:'Chưa có cập nhật triệu chứng mới'}}
+export const EVIDENCE_NOTES=[{label:'TNM 9',text:'Stage grouping dùng bảng IASLC TNM 9th edition được AJCC chấp nhận; chỉ tính từ T/N/M được chọn rõ ràng.'},{label:'N/M changes',text:'N2a/N2b và M1c1/M1c2 được biểu diễn riêng theo TNM 9.'},{label:'Biomarker',text:'Checklist biomarker chỉ theo dõi độ đầy đủ dữ liệu; ứng dụng không tự chọn thuốc hoặc phác đồ.'}];
