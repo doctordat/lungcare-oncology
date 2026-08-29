@@ -17,31 +17,11 @@ function persist() {
   if (el) el.textContent = 'Đã lưu cục bộ';
 }
 
-function setState(next) {
-  state = next;
-  persist();
-  render();
-}
-
-function routeParts() {
-  return location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-}
-
-function currentRole() {
-  const [page, role] = routeParts();
-  if (page === 'workspace') return role;
-  return state.activeRole;
-}
-
-function value(id, fallback) {
-  const el = document.getElementById(id);
-  return el ? el.value : fallback;
-}
-
-function checked(id, fallback) {
-  const el = document.getElementById(id);
-  return el ? el.checked : fallback;
-}
+function setState(next) { state = next; persist(); render(); }
+function routeParts() { return location.hash.replace(/^#\/?/, '').split('/').filter(Boolean); }
+function currentRole() { const [page, role] = routeParts(); return page === 'workspace' ? role : state.activeRole; }
+function value(id, fallback) { const el = document.getElementById(id); return el ? el.value : fallback; }
+function checked(id, fallback) { const el = document.getElementById(id); return el ? el.checked : fallback; }
 
 function nurseUrgent(i) {
   return Number(i.spo2) < 90 || String(i.dyspnea).toLowerCase().includes('nặng') || Object.values(i.redFlags || {}).some(Boolean);
@@ -63,76 +43,33 @@ function captureCurrentForm() {
   const role = currentRole();
   if (role === 'nurse') {
     const i = state.intake;
-    state = {
-      ...state,
-      intake: {
-        ...i,
-        spo2: Number(value('spo2', i.spo2) || 0),
-        heartRate: Number(value('heartRate', i.heartRate) || 0),
-        temperature: Number(value('temperature', i.temperature) || 0),
-        systolicBP: Number(value('systolicBP', i.systolicBP) || 0),
-        diastolicBP: Number(value('diastolicBP', i.diastolicBP) || 0),
-        dyspnea: value('dyspnea', i.dyspnea),
-        pain: Number(value('pain', i.pain) || 0),
-        note: value('intakeNote', i.note).trim(),
-        redFlags: {
-          ...i.redFlags,
-          severeDyspnea: checked('rfSevereDyspnea', i.redFlags.severeDyspnea),
-          majorHemoptysis: checked('rfHemoptysis', i.redFlags.majorHemoptysis),
-          alteredMentalStatus: checked('rfMental', i.redFlags.alteredMentalStatus),
-          chestPainAcute: checked('rfChestPain', i.redFlags.chestPainAcute),
-        },
-        escalationAcknowledged: checked('escalationAcknowledged', i.escalationAcknowledged),
-        medicationSafety: {
-          ...i.medicationSafety,
-          allergiesReviewed: checked('allergiesReviewed', i.medicationSafety.allergiesReviewed),
-          allergies: value('allergies', i.medicationSafety.allergies).trim(),
-          medicationsReviewed: checked('medicationsReviewed', i.medicationSafety.medicationsReviewed),
-          currentMedications: value('currentMedications', i.medicationSafety.currentMedications).trim(),
-          interactionConcern: value('interactionConcern', i.medicationSafety.interactionConcern).trim(),
-        },
-        education: {
-          ...i.education,
-          identityConfirmed: checked('identityConfirmed', i.education.identityConfirmed),
-          teachBackCompleted: checked('teachBackCompleted', i.education.teachBackCompleted),
-          supportPerson: value('supportPerson', i.education.supportPerson).trim(),
-          educationNote: value('educationNote', i.education.educationNote).trim(),
-        },
-        handoff: {
-          ...i.handoff,
-          situation: value('handoffSituation', i.handoff.situation).trim(),
-          background: value('handoffBackground', i.handoff.background).trim(),
-          assessment: value('handoffAssessment', i.handoff.assessment).trim(),
-          recommendation: value('handoffRecommendation', i.handoff.recommendation).trim(),
-        },
-      },
-    };
+    state = { ...state, intake: { ...i,
+      spo2: Number(value('spo2', i.spo2) || 0), heartRate: Number(value('heartRate', i.heartRate) || 0), temperature: Number(value('temperature', i.temperature) || 0), systolicBP: Number(value('systolicBP', i.systolicBP) || 0), diastolicBP: Number(value('diastolicBP', i.diastolicBP) || 0), dyspnea: value('dyspnea', i.dyspnea), pain: Number(value('pain', i.pain) || 0), note: value('intakeNote', i.note).trim(),
+      redFlags: { ...i.redFlags, severeDyspnea: checked('rfSevereDyspnea', i.redFlags.severeDyspnea), majorHemoptysis: checked('rfHemoptysis', i.redFlags.majorHemoptysis), alteredMentalStatus: checked('rfMental', i.redFlags.alteredMentalStatus), chestPainAcute: checked('rfChestPain', i.redFlags.chestPainAcute) },
+      escalationAcknowledged: checked('escalationAcknowledged', i.escalationAcknowledged),
+      medicationSafety: { ...i.medicationSafety, allergiesReviewed: checked('allergiesReviewed', i.medicationSafety.allergiesReviewed), allergies: value('allergies', i.medicationSafety.allergies).trim(), medicationsReviewed: checked('medicationsReviewed', i.medicationSafety.medicationsReviewed), currentMedications: value('currentMedications', i.medicationSafety.currentMedications).trim(), interactionConcern: value('interactionConcern', i.medicationSafety.interactionConcern).trim() },
+      education: { ...i.education, identityConfirmed: checked('identityConfirmed', i.education.identityConfirmed), teachBackCompleted: checked('teachBackCompleted', i.education.teachBackCompleted), supportPerson: value('supportPerson', i.education.supportPerson).trim(), educationNote: value('educationNote', i.education.educationNote).trim() },
+      handoff: { ...i.handoff, situation: value('handoffSituation', i.handoff.situation).trim(), background: value('handoffBackground', i.handoff.background).trim(), assessment: value('handoffAssessment', i.handoff.assessment).trim(), recommendation: value('handoffRecommendation', i.handoff.recommendation).trim() },
+    }};
   }
 
   if (role === 'doctor') {
     const d = state.doctorReview;
     const nextBiomarkers = { ...d.biomarkers };
-    document.querySelectorAll('[data-biomarker]').forEach((el) => {
-      nextBiomarkers[el.dataset.biomarker] = el.checked;
-    });
-    state = {
-      ...state,
-      doctorReview: {
-        ...d,
-        diagnosisConfirmed: checked('diagnosisConfirmed', d.diagnosisConfirmed),
-        pathologyReviewed: checked('pathologyReviewed', d.pathologyReviewed),
-        pathologyType: value('pathologyType', d.pathologyType),
-        pathologyNote: value('pathologyNote', d.pathologyNote).trim(),
-        stagingReviewed: checked('stagingReviewed', d.stagingReviewed),
-        diseaseExtent: value('diseaseExtent', d.diseaseExtent),
-        n2Status: value('n2Status', d.n2Status),
-        nodalConfirmationPlan: value('nodalConfirmationPlan', d.nodalConfirmationPlan).trim(),
-        biomarkerStatus: value('biomarkerStatus', d.biomarkerStatus),
-        biomarkers: nextBiomarkers,
-        mdtDecision: value('mdtDecision', d.mdtDecision).trim(),
-        plan: value('doctorPlan', d.plan).trim(),
-      },
-    };
+    document.querySelectorAll('[data-biomarker]').forEach((el) => { nextBiomarkers[el.dataset.biomarker] = el.checked; });
+    state = { ...state, doctorReview: { ...d,
+      diagnosisConfirmed: checked('diagnosisConfirmed', d.diagnosisConfirmed), pathologyReviewed: checked('pathologyReviewed', d.pathologyReviewed), pathologyType: value('pathologyType', d.pathologyType), pathologyNote: value('pathologyNote', d.pathologyNote).trim(), stagingReviewed: checked('stagingReviewed', d.stagingReviewed), diseaseExtent: value('diseaseExtent', d.diseaseExtent), n2Status: value('n2Status', d.n2Status), nodalConfirmationPlan: value('nodalConfirmationPlan', d.nodalConfirmationPlan).trim(), biomarkerStatus: value('biomarkerStatus', d.biomarkerStatus), biomarkers: nextBiomarkers, mdtDecision: value('mdtDecision', d.mdtDecision).trim(), plan: value('doctorPlan', d.plan).trim(),
+    }};
+  }
+
+  if (role === 'patient') {
+    const p = state.patientEducation;
+    const r = p.symptomReport;
+    state = { ...state, patientEducation: { ...p,
+      medicationAcknowledged: checked('medicationAcknowledged', p.medicationAcknowledged),
+      teamMessage: value('patientTeamMessage', p.teamMessage).trim(),
+      symptomReport: { ...r, dyspnea: value('patientDyspnea', r.dyspnea), pain: Number(value('patientPain', r.pain) || 0), fever: checked('patientFever', r.fever), hemoptysis: checked('patientHemoptysis', r.hemoptysis), confusion: checked('patientConfusion', r.confusion), chestPain: checked('patientChestPain', r.chestPain), note: value('patientSymptomNote', r.note).trim() },
+    }};
   }
   persist();
 }
@@ -159,119 +96,67 @@ function render() {
   }
 }
 
-function saveNurseDraft() {
-  captureCurrentForm();
-  state = addEvent(state, { type: 'NURSE_DRAFT_SAVED', role: 'nurse', text: 'Điều dưỡng đã lưu nháp tiếp nhận.' });
-  persist();
-  render();
-}
-
+function saveNurseDraft() { captureCurrentForm(); state = addEvent(state, { type: 'NURSE_DRAFT_SAVED', role: 'nurse', text: 'Điều dưỡng đã lưu nháp tiếp nhận.' }); persist(); render(); }
 function completeNurseIntake() {
-  captureCurrentForm();
-  if (state.workflow.state !== 'NURSE_INTAKE') return;
+  captureCurrentForm(); if (state.workflow.state !== 'NURSE_INTAKE') return;
   const blockers = getNurseBlockers(state.intake);
-  if (blockers.length) {
-    alert(`Chưa thể bàn giao:\n- ${blockers.join('\n- ')}`);
-    render();
-    return;
-  }
+  if (blockers.length) { alert(`Chưa thể bàn giao:\n- ${blockers.join('\n- ')}`); render(); return; }
   state = { ...state, intake: { ...state.intake, completed: true } };
-  state = transition(state, 'READY_FOR_DOCTOR', { role: 'nurse', text: 'Điều dưỡng hoàn tất tiếp nhận an toàn và bàn giao SBAR cho bác sĩ.' });
-  persist();
-  render();
+  state = transition(state, 'READY_FOR_DOCTOR', { role: 'nurse', text: 'Điều dưỡng hoàn tất tiếp nhận an toàn và bàn giao SBAR cho bác sĩ.' }); persist(); render();
 }
-
-function startDoctorReview() {
-  if (state.workflow.state !== 'READY_FOR_DOCTOR') return;
-  setState(transition(state, 'DOCTOR_REVIEW', { role: 'doctor', text: 'Bác sĩ bắt đầu đánh giá ca bệnh.' }));
-}
-
-function saveDoctorReview() {
-  captureCurrentForm();
-  state = addEvent(state, { type: 'DOCTOR_REVIEW_SAVED', role: 'doctor', text: 'Bác sĩ đã lưu đánh giá.' });
-  persist();
-  render();
-}
-
+function startDoctorReview() { if (state.workflow.state !== 'READY_FOR_DOCTOR') return; setState(transition(state, 'DOCTOR_REVIEW', { role: 'doctor', text: 'Bác sĩ bắt đầu đánh giá ca bệnh.' })); }
+function saveDoctorReview() { captureCurrentForm(); state = addEvent(state, { type: 'DOCTOR_REVIEW_SAVED', role: 'doctor', text: 'Bác sĩ đã lưu đánh giá.' }); persist(); render(); }
 function completeDoctorReview() {
-  captureCurrentForm();
-  if (state.workflow.state !== 'DOCTOR_REVIEW') return;
+  captureCurrentForm(); if (state.workflow.state !== 'DOCTOR_REVIEW') return;
   const blockers = getDoctorBlockers(state);
-  if (blockers.length) {
-    alert(`Chưa thể phát hành kế hoạch:\n- ${blockers.join('\n- ')}`);
-    render();
-    return;
-  }
+  if (blockers.length) { alert(`Chưa thể phát hành kế hoạch:\n- ${blockers.join('\n- ')}`); render(); return; }
   state = { ...state, doctorReview: { ...state.doctorReview, completed: true } };
-  state = transition(state, 'PLAN_READY', { role: 'doctor', text: 'Bác sĩ hoàn tất kế hoạch và gửi hướng dẫn sang workspace bệnh nhân.' });
-  persist();
-  render();
+  state = transition(state, 'PLAN_READY', { role: 'doctor', text: 'Bác sĩ hoàn tất kế hoạch và gửi hướng dẫn sang workspace bệnh nhân.' }); persist(); render();
 }
-
 function acknowledgePlan() {
-  if (state.workflow.state !== 'PLAN_READY') return;
+  captureCurrentForm(); if (state.workflow.state !== 'PLAN_READY') return;
+  if (!state.patientEducation.medicationAcknowledged) { alert('Cần đọc và xác nhận phần hướng dẫn thuốc trước khi hoàn tất.'); state = { ...state, ui: { ...state.ui, patientStep: 'medications' } }; persist(); render(); return; }
   state = { ...state, patientEducation: { ...state.patientEducation, acknowledged: true } };
-  state = transition(state, 'PATIENT_ACKNOWLEDGED', { role: 'patient', text: 'Bệnh nhân xác nhận đã đọc và hiểu hướng dẫn.' });
-  persist();
-  render();
+  state = transition(state, 'PATIENT_ACKNOWLEDGED', { role: 'patient', text: 'Bệnh nhân xác nhận đã đọc và hiểu kế hoạch/hướng dẫn.' }); persist(); render();
+}
+function submitSymptoms() {
+  captureCurrentForm();
+  const r = state.patientEducation.symptomReport;
+  const urgent = r.hemoptysis || r.confusion || r.chestPain || r.dyspnea === 'Tăng nhiều';
+  state = { ...state, patientEducation: { ...state.patientEducation, symptomReport: { ...r, submittedAt: new Date().toISOString() } } };
+  state = addEvent(state, { type: urgent ? 'PATIENT_URGENT_SYMPTOM' : 'PATIENT_SYMPTOM_UPDATE', role: 'patient', text: urgent ? 'Bệnh nhân gửi cập nhật có triệu chứng cảnh báo; cần team ưu tiên xem và bệnh nhân được nhắc không chờ app nếu cần cấp cứu.' : 'Bệnh nhân đã gửi cập nhật triệu chứng.' });
+  persist(); render();
+}
+function sendPatientMessage() {
+  captureCurrentForm();
+  if (!state.patientEducation.teamMessage.trim()) { alert('Nhập nội dung cần gửi cho team.'); return; }
+  state = { ...state, patientEducation: { ...state.patientEducation, messageSentAt: new Date().toISOString() } };
+  state = addEvent(state, { type: 'PATIENT_MESSAGE', role: 'patient', text: `Bệnh nhân gửi tin nhắn cho team: ${state.patientEducation.teamMessage}` }); persist(); render();
 }
 
 root.addEventListener('click', (event) => {
-  const button = event.target.closest('[data-action]');
-  if (!button) return;
+  const button = event.target.closest('[data-action]'); if (!button) return;
   const action = button.dataset.action;
-
   if (action === 'login') {
-    const role = button.dataset.role;
-    const code = document.getElementById('demoCode')?.value.trim();
-    if (code !== 'DEMO2026') {
-      alert('Mã demo chưa đúng.');
-      return;
-    }
-    state = addEvent({ ...state, activeRole: role }, { type: 'ROLE_LOGIN', role, text: `${role} đã vào workspace demo.` });
-    persist();
-    location.hash = `#/workspace/${role}`;
-    return;
+    const role = button.dataset.role; const code = document.getElementById('demoCode')?.value.trim();
+    if (code !== 'DEMO2026') { alert('Mã demo chưa đúng.'); return; }
+    state = addEvent({ ...state, activeRole: role }, { type: 'ROLE_LOGIN', role, text: `${role} đã vào workspace demo.` }); persist(); location.hash = `#/workspace/${role}`; return;
   }
-
-  if (action === 'switch-role') {
-    captureCurrentForm();
-    state = { ...state, activeRole: null };
-    persist();
-    location.hash = '#/';
-    return;
-  }
-
-  if (action === 'doctor-step') {
-    captureCurrentForm();
-    state = { ...state, ui: { ...state.ui, doctorStep: button.dataset.step } };
-    persist();
-    render();
-    return;
-  }
-
-  if (action === 'nurse-step') {
-    captureCurrentForm();
-    state = { ...state, ui: { ...state.ui, nurseStep: button.dataset.step } };
-    persist();
-    render();
-    return;
-  }
-
+  if (action === 'switch-role') { captureCurrentForm(); state = { ...state, activeRole: null }; persist(); location.hash = '#/'; return; }
+  if (action === 'doctor-step') { captureCurrentForm(); state = { ...state, ui: { ...state.ui, doctorStep: button.dataset.step } }; persist(); render(); return; }
+  if (action === 'nurse-step') { captureCurrentForm(); state = { ...state, ui: { ...state.ui, nurseStep: button.dataset.step } }; persist(); render(); return; }
+  if (action === 'patient-step') { captureCurrentForm(); state = { ...state, ui: { ...state.ui, patientStep: button.dataset.step } }; persist(); render(); return; }
   if (action === 'save-intake') saveNurseDraft();
   if (action === 'complete-intake') completeNurseIntake();
   if (action === 'start-doctor-review') startDoctorReview();
   if (action === 'save-doctor-review') saveDoctorReview();
   if (action === 'complete-doctor-review') completeDoctorReview();
   if (action === 'acknowledge-plan') acknowledgePlan();
+  if (action === 'submit-symptoms') submitSymptoms();
+  if (action === 'send-patient-message') sendPatientMessage();
   if (action === 'dismiss-recovery') { recoveryMessage = null; render(); }
-  if (action === 'go-home') { location.hash = '#/'; }
-  if (action === 'reset-demo') {
-    state = resetState();
-    recoveryMessage = null;
-    location.hash = '#/';
-    render();
-  }
+  if (action === 'go-home') location.hash = '#/';
+  if (action === 'reset-demo') { state = resetState(); recoveryMessage = null; location.hash = '#/'; render(); }
 });
 
 window.addEventListener('hashchange', render);
