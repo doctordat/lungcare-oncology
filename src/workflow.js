@@ -44,13 +44,35 @@ export function transition(state, next, meta) {
 
 export function getRoleTasks(state, role) {
   const workflow = state.workflow.state;
+  const i = state.intake;
+  const medicationReady = i.medicationSafety.allergiesReviewed && i.medicationSafety.medicationsReviewed;
+  const educationReady = i.education.identityConfirmed && i.education.teachBackCompleted;
+  const handoffReady = Boolean(i.handoff.situation?.trim() && i.handoff.assessment?.trim() && i.handoff.recommendation?.trim());
   const tasks = {
     nurse: [
       {
-        id: 'nurse-intake',
-        title: 'Hoàn tất tiếp nhận ban đầu',
-        detail: 'Sinh hiệu, khó thở, đau và ghi chú bàn giao.',
-        status: state.intake.completed ? 'done' : workflow === 'NURSE_INTAKE' ? 'active' : 'locked',
+        id: 'nurse-vitals',
+        title: 'Sinh hiệu & red flags',
+        detail: 'Ghi nhận sinh hiệu, triệu chứng và escalated nếu có cảnh báo khẩn.',
+        status: i.spo2 && i.heartRate && i.dyspnea ? 'done' : workflow === 'NURSE_INTAKE' ? 'active' : 'locked',
+      },
+      {
+        id: 'nurse-medication',
+        title: 'Thuốc & dị ứng',
+        detail: 'Medication reconciliation và ghi nhận vấn đề cần bác sĩ kiểm tra.',
+        status: medicationReady ? 'done' : workflow === 'NURSE_INTAKE' ? 'active' : 'locked',
+      },
+      {
+        id: 'nurse-education',
+        title: 'Teach-back',
+        detail: 'Xác nhận danh tính và khả năng nhắc lại hướng dẫn chính.',
+        status: educationReady ? 'done' : workflow === 'NURSE_INTAKE' ? 'active' : 'locked',
+      },
+      {
+        id: 'nurse-handoff',
+        title: 'Bàn giao SBAR',
+        detail: 'Một nguồn bàn giao duy nhất sang workspace bác sĩ.',
+        status: i.completed ? 'done' : handoffReady && workflow === 'NURSE_INTAKE' ? 'active' : workflow === 'NURSE_INTAKE' ? 'active' : 'locked',
       },
     ],
     doctor: [

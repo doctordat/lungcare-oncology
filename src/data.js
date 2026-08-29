@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export function createDemoState() {
   return {
@@ -6,6 +6,7 @@ export function createDemoState() {
     activeRole: null,
     ui: {
       doctorStep: 'overview',
+      nurseStep: 'overview',
     },
     workflow: {
       state: 'NURSE_INTAKE',
@@ -27,9 +28,38 @@ export function createDemoState() {
     intake: {
       spo2: 96,
       heartRate: 82,
+      temperature: 36.8,
+      systolicBP: 128,
+      diastolicBP: 76,
       dyspnea: 'Nhẹ khi gắng sức',
       pain: 2,
       note: 'Ho kéo dài, đau ngực nhẹ, sụt 4 kg/2 tháng.',
+      redFlags: {
+        severeDyspnea: false,
+        majorHemoptysis: false,
+        alteredMentalStatus: false,
+        chestPainAcute: false,
+      },
+      escalationAcknowledged: false,
+      medicationSafety: {
+        allergiesReviewed: false,
+        allergies: 'Chưa ghi nhận dị ứng thuốc trong dữ liệu demo.',
+        medicationsReviewed: false,
+        currentMedications: 'Amlodipine 5 mg mỗi ngày (demo).',
+        interactionConcern: '',
+      },
+      education: {
+        identityConfirmed: false,
+        teachBackCompleted: false,
+        supportPerson: '',
+        educationNote: '',
+      },
+      handoff: {
+        situation: 'Nghi ung thư phổi, đang chờ hoàn tất đánh giá bác sĩ.',
+        background: 'Nam 62 tuổi, 35 pack-year, ECOG 1.',
+        assessment: '',
+        recommendation: 'Bác sĩ đánh giá staging, mô bệnh học và kế hoạch tiếp theo.',
+      },
       completed: false,
     },
     doctorReview: {

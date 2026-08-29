@@ -7,6 +7,16 @@ function normalizeState(raw) {
   const base = createDemoState();
   if (!raw || typeof raw !== 'object') return base;
 
+  const rawIntake = raw.intake || {};
+  const mergedIntake = {
+    ...base.intake,
+    ...rawIntake,
+    redFlags: { ...base.intake.redFlags, ...(rawIntake.redFlags || {}) },
+    medicationSafety: { ...base.intake.medicationSafety, ...(rawIntake.medicationSafety || {}) },
+    education: { ...base.intake.education, ...(rawIntake.education || {}) },
+    handoff: { ...base.intake.handoff, ...(rawIntake.handoff || {}) },
+  };
+
   const mergedDoctor = {
     ...base.doctorReview,
     ...(raw.doctorReview || {}),
@@ -22,7 +32,7 @@ function normalizeState(raw) {
     ui: { ...base.ui, ...(raw.ui || {}) },
     workflow: { ...base.workflow, ...(raw.workflow || {}) },
     patient: { ...base.patient, ...(raw.patient || {}) },
-    intake: { ...base.intake, ...(raw.intake || {}) },
+    intake: mergedIntake,
     doctorReview: mergedDoctor,
     patientEducation: { ...base.patientEducation, ...(raw.patientEducation || {}) },
     events: Array.isArray(raw.events) ? raw.events : base.events,
