@@ -7,7 +7,7 @@ import {ErrorBoundary} from './ui/ErrorBoundary';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
- <React.StrictMode><ErrorBoundary><BrowserRouter><AppProvider><Routes>
+ <React.StrictMode><ErrorBoundary><BrowserRouter basename={import.meta.env.BASE_URL}><AppProvider><Routes>
   <Route path="/" element={<Navigate to="/patient" replace/>}/>
   <Route path="/patient" element={<Workspace role="patient"/>}/>
   <Route path="/nurse" element={<Workspace role="nurse"/>}/>
