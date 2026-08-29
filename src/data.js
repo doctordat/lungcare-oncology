@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export function createDemoState() {
   return {
@@ -7,6 +7,7 @@ export function createDemoState() {
     ui: {
       doctorStep: 'overview',
       nurseStep: 'overview',
+      patientStep: 'today',
     },
     workflow: {
       state: 'NURSE_INTAKE',
@@ -90,6 +91,19 @@ export function createDemoState() {
     },
     patientEducation: {
       acknowledged: false,
+      medicationAcknowledged: false,
+      symptomReport: {
+        dyspnea: 'Không tăng',
+        pain: 2,
+        fever: false,
+        hemoptysis: false,
+        confusion: false,
+        chestPain: false,
+        note: '',
+        submittedAt: null,
+      },
+      teamMessage: '',
+      messageSentAt: null,
     },
     events: [
       {
