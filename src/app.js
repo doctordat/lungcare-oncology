@@ -43,18 +43,68 @@ function checked(id, fallback) {
   return el ? el.checked : fallback;
 }
 
+function nurseUrgent(i) {
+  return Number(i.spo2) < 90 || String(i.dyspnea).toLowerCase().includes('nặng') || Object.values(i.redFlags || {}).some(Boolean);
+}
+
+function getNurseBlockers(i) {
+  const blockers = [];
+  if (!i.spo2 || !i.heartRate || !i.dyspnea) blockers.push('Thiếu sinh hiệu hoặc mức khó thở.');
+  if (nurseUrgent(i) && !i.escalationAcknowledged) blockers.push('Có red flag/cảnh báo khẩn nhưng chưa xác nhận đã escalated cho bác sĩ.');
+  if (!i.medicationSafety.allergiesReviewed) blockers.push('Chưa rà soát dị ứng thuốc.');
+  if (!i.medicationSafety.medicationsReviewed) blockers.push('Chưa medication reconciliation.');
+  if (!i.education.identityConfirmed) blockers.push('Chưa xác nhận danh tính trước giáo dục/bàn giao.');
+  if (!i.education.teachBackCompleted) blockers.push('Chưa hoàn tất teach-back.');
+  if (!i.handoff.situation?.trim() || !i.handoff.assessment?.trim() || !i.handoff.recommendation?.trim()) blockers.push('SBAR chưa đủ Situation / Assessment / Recommendation.');
+  return blockers;
+}
+
 function captureCurrentForm() {
   const role = currentRole();
-  if (role === 'nurse' && document.getElementById('spo2')) {
+  if (role === 'nurse') {
+    const i = state.intake;
     state = {
       ...state,
       intake: {
-        ...state.intake,
-        spo2: Number(document.getElementById('spo2').value || 0),
-        heartRate: Number(document.getElementById('heartRate').value || 0),
-        dyspnea: document.getElementById('dyspnea').value,
-        pain: Number(document.getElementById('pain').value || 0),
-        note: document.getElementById('intakeNote').value.trim(),
+        ...i,
+        spo2: Number(value('spo2', i.spo2) || 0),
+        heartRate: Number(value('heartRate', i.heartRate) || 0),
+        temperature: Number(value('temperature', i.temperature) || 0),
+        systolicBP: Number(value('systolicBP', i.systolicBP) || 0),
+        diastolicBP: Number(value('diastolicBP', i.diastolicBP) || 0),
+        dyspnea: value('dyspnea', i.dyspnea),
+        pain: Number(value('pain', i.pain) || 0),
+        note: value('intakeNote', i.note).trim(),
+        redFlags: {
+          ...i.redFlags,
+          severeDyspnea: checked('rfSevereDyspnea', i.redFlags.severeDyspnea),
+          majorHemoptysis: checked('rfHemoptysis', i.redFlags.majorHemoptysis),
+          alteredMentalStatus: checked('rfMental', i.redFlags.alteredMentalStatus),
+          chestPainAcute: checked('rfChestPain', i.redFlags.chestPainAcute),
+        },
+        escalationAcknowledged: checked('escalationAcknowledged', i.escalationAcknowledged),
+        medicationSafety: {
+          ...i.medicationSafety,
+          allergiesReviewed: checked('allergiesReviewed', i.medicationSafety.allergiesReviewed),
+          allergies: value('allergies', i.medicationSafety.allergies).trim(),
+          medicationsReviewed: checked('medicationsReviewed', i.medicationSafety.medicationsReviewed),
+          currentMedications: value('currentMedications', i.medicationSafety.currentMedications).trim(),
+          interactionConcern: value('interactionConcern', i.medicationSafety.interactionConcern).trim(),
+        },
+        education: {
+          ...i.education,
+          identityConfirmed: checked('identityConfirmed', i.education.identityConfirmed),
+          teachBackCompleted: checked('teachBackCompleted', i.education.teachBackCompleted),
+          supportPerson: value('supportPerson', i.education.supportPerson).trim(),
+          educationNote: value('educationNote', i.education.educationNote).trim(),
+        },
+        handoff: {
+          ...i.handoff,
+          situation: value('handoffSituation', i.handoff.situation).trim(),
+          background: value('handoffBackground', i.handoff.background).trim(),
+          assessment: value('handoffAssessment', i.handoff.assessment).trim(),
+          recommendation: value('handoffRecommendation', i.handoff.recommendation).trim(),
+        },
       },
     };
   }
@@ -119,12 +169,14 @@ function saveNurseDraft() {
 function completeNurseIntake() {
   captureCurrentForm();
   if (state.workflow.state !== 'NURSE_INTAKE') return;
-  if (!state.intake.spo2 || !state.intake.heartRate || !state.intake.dyspnea) {
-    alert('Cần nhập đủ SpO₂, mạch và mức khó thở trước khi bàn giao.');
+  const blockers = getNurseBlockers(state.intake);
+  if (blockers.length) {
+    alert(`Chưa thể bàn giao:\n- ${blockers.join('\n- ')}`);
+    render();
     return;
   }
   state = { ...state, intake: { ...state.intake, completed: true } };
-  state = transition(state, 'READY_FOR_DOCTOR', { role: 'nurse', text: 'Điều dưỡng hoàn tất tiếp nhận và bàn giao ca cho bác sĩ.' });
+  state = transition(state, 'READY_FOR_DOCTOR', { role: 'nurse', text: 'Điều dưỡng hoàn tất tiếp nhận an toàn và bàn giao SBAR cho bác sĩ.' });
   persist();
   render();
 }
@@ -193,6 +245,14 @@ root.addEventListener('click', (event) => {
   if (action === 'doctor-step') {
     captureCurrentForm();
     state = { ...state, ui: { ...state.ui, doctorStep: button.dataset.step } };
+    persist();
+    render();
+    return;
+  }
+
+  if (action === 'nurse-step') {
+    captureCurrentForm();
+    state = { ...state, ui: { ...state.ui, nurseStep: button.dataset.step } };
     persist();
     render();
     return;
