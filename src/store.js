@@ -7,13 +7,23 @@ function normalizeState(raw) {
   const base = createDemoState();
   if (!raw || typeof raw !== 'object') return base;
 
+  const mergedDoctor = {
+    ...base.doctorReview,
+    ...(raw.doctorReview || {}),
+    biomarkers: {
+      ...base.doctorReview.biomarkers,
+      ...((raw.doctorReview || {}).biomarkers || {}),
+    },
+  };
+
   const merged = {
     ...base,
     ...raw,
+    ui: { ...base.ui, ...(raw.ui || {}) },
     workflow: { ...base.workflow, ...(raw.workflow || {}) },
     patient: { ...base.patient, ...(raw.patient || {}) },
     intake: { ...base.intake, ...(raw.intake || {}) },
-    doctorReview: { ...base.doctorReview, ...(raw.doctorReview || {}) },
+    doctorReview: mergedDoctor,
     patientEducation: { ...base.patientEducation, ...(raw.patientEducation || {}) },
     events: Array.isArray(raw.events) ? raw.events : base.events,
   };

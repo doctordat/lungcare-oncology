@@ -1,5 +1,6 @@
 import { loadState, saveState, resetState, addEvent } from './store.js';
 import { transition } from './workflow.js';
+import { getDoctorBlockers } from './clinical.js';
 import { rolePickerView, loginView } from './views/login.js';
 import { nurseView } from './views/nurse.js';
 import { doctorView } from './views/doctor.js';
@@ -32,6 +33,16 @@ function currentRole() {
   return state.activeRole;
 }
 
+function value(id, fallback) {
+  const el = document.getElementById(id);
+  return el ? el.value : fallback;
+}
+
+function checked(id, fallback) {
+  const el = document.getElementById(id);
+  return el ? el.checked : fallback;
+}
+
 function captureCurrentForm() {
   const role = currentRole();
   if (role === 'nurse' && document.getElementById('spo2')) {
@@ -47,14 +58,29 @@ function captureCurrentForm() {
       },
     };
   }
-  if (role === 'doctor' && document.getElementById('doctorPlan')) {
+
+  if (role === 'doctor') {
+    const d = state.doctorReview;
+    const nextBiomarkers = { ...d.biomarkers };
+    document.querySelectorAll('[data-biomarker]').forEach((el) => {
+      nextBiomarkers[el.dataset.biomarker] = el.checked;
+    });
     state = {
       ...state,
       doctorReview: {
-        ...state.doctorReview,
-        stagingReviewed: document.getElementById('stagingReviewed').checked,
-        pathologyReviewed: document.getElementById('pathologyReviewed').checked,
-        plan: document.getElementById('doctorPlan').value.trim(),
+        ...d,
+        diagnosisConfirmed: checked('diagnosisConfirmed', d.diagnosisConfirmed),
+        pathologyReviewed: checked('pathologyReviewed', d.pathologyReviewed),
+        pathologyType: value('pathologyType', d.pathologyType),
+        pathologyNote: value('pathologyNote', d.pathologyNote).trim(),
+        stagingReviewed: checked('stagingReviewed', d.stagingReviewed),
+        diseaseExtent: value('diseaseExtent', d.diseaseExtent),
+        n2Status: value('n2Status', d.n2Status),
+        nodalConfirmationPlan: value('nodalConfirmationPlan', d.nodalConfirmationPlan).trim(),
+        biomarkerStatus: value('biomarkerStatus', d.biomarkerStatus),
+        biomarkers: nextBiomarkers,
+        mdtDecision: value('mdtDecision', d.mdtDecision).trim(),
+        plan: value('doctorPlan', d.plan).trim(),
       },
     };
   }
@@ -70,29 +96,16 @@ function render() {
   try {
     const [page, role] = routeParts();
     let html;
-
     if (!page) html = rolePickerView();
     else if (page === 'login') html = loginView(role);
     else if (page === 'workspace' && role === 'nurse') html = nurseView(state);
     else if (page === 'workspace' && role === 'doctor') html = doctorView(state);
     else if (page === 'workspace' && role === 'patient') html = patientView(state);
     else html = rolePickerView();
-
     root.innerHTML = recoveryBanner() + html;
   } catch (error) {
     console.error(error);
-    root.innerHTML = `
-      <div class="error-shell">
-        <div class="error-card">
-          <div class="eyebrow">Error state</div>
-          <h1>Không thể hiển thị workspace</h1>
-          <p>${String(error.message || error)}</p>
-          <div class="action-row">
-            <button class="secondary-btn" data-action="go-home">Về chọn vai trò</button>
-            <button class="danger-btn" data-action="reset-demo">Khôi phục dữ liệu demo</button>
-          </div>
-        </div>
-      </div>`;
+    root.innerHTML = `<div class="error-shell"><div class="error-card"><div class="eyebrow">Error state</div><h1>Không thể hiển thị workspace</h1><p>${String(error.message || error)}</p><div class="action-row"><button class="secondary-btn" data-action="go-home">Về chọn vai trò</button><button class="danger-btn" data-action="reset-demo">Khôi phục dữ liệu demo</button></div></div></div>`;
   }
 }
 
@@ -111,20 +124,14 @@ function completeNurseIntake() {
     return;
   }
   state = { ...state, intake: { ...state.intake, completed: true } };
-  state = transition(state, 'READY_FOR_DOCTOR', {
-    role: 'nurse',
-    text: 'Điều dưỡng hoàn tất tiếp nhận và bàn giao ca cho bác sĩ.',
-  });
+  state = transition(state, 'READY_FOR_DOCTOR', { role: 'nurse', text: 'Điều dưỡng hoàn tất tiếp nhận và bàn giao ca cho bác sĩ.' });
   persist();
   render();
 }
 
 function startDoctorReview() {
   if (state.workflow.state !== 'READY_FOR_DOCTOR') return;
-  setState(transition(state, 'DOCTOR_REVIEW', {
-    role: 'doctor',
-    text: 'Bác sĩ bắt đầu đánh giá ca bệnh.',
-  }));
+  setState(transition(state, 'DOCTOR_REVIEW', { role: 'doctor', text: 'Bác sĩ bắt đầu đánh giá ca bệnh.' }));
 }
 
 function saveDoctorReview() {
@@ -136,13 +143,15 @@ function saveDoctorReview() {
 
 function completeDoctorReview() {
   captureCurrentForm();
-  const d = state.doctorReview;
-  if (state.workflow.state !== 'DOCTOR_REVIEW' || !d.stagingReviewed || !d.pathologyReviewed || !d.plan) return;
-  state = { ...state, doctorReview: { ...d, completed: true } };
-  state = transition(state, 'PLAN_READY', {
-    role: 'doctor',
-    text: 'Bác sĩ hoàn tất kế hoạch và gửi hướng dẫn sang workspace bệnh nhân.',
-  });
+  if (state.workflow.state !== 'DOCTOR_REVIEW') return;
+  const blockers = getDoctorBlockers(state);
+  if (blockers.length) {
+    alert(`Chưa thể phát hành kế hoạch:\n- ${blockers.join('\n- ')}`);
+    render();
+    return;
+  }
+  state = { ...state, doctorReview: { ...state.doctorReview, completed: true } };
+  state = transition(state, 'PLAN_READY', { role: 'doctor', text: 'Bác sĩ hoàn tất kế hoạch và gửi hướng dẫn sang workspace bệnh nhân.' });
   persist();
   render();
 }
@@ -150,10 +159,7 @@ function completeDoctorReview() {
 function acknowledgePlan() {
   if (state.workflow.state !== 'PLAN_READY') return;
   state = { ...state, patientEducation: { ...state.patientEducation, acknowledged: true } };
-  state = transition(state, 'PATIENT_ACKNOWLEDGED', {
-    role: 'patient',
-    text: 'Bệnh nhân xác nhận đã đọc và hiểu hướng dẫn.',
-  });
+  state = transition(state, 'PATIENT_ACKNOWLEDGED', { role: 'patient', text: 'Bệnh nhân xác nhận đã đọc và hiểu hướng dẫn.' });
   persist();
   render();
 }
@@ -170,9 +176,7 @@ root.addEventListener('click', (event) => {
       alert('Mã demo chưa đúng.');
       return;
     }
-    state = addEvent({ ...state, activeRole: role }, {
-      type: 'ROLE_LOGIN', role, text: `${role} đã vào workspace demo.`,
-    });
+    state = addEvent({ ...state, activeRole: role }, { type: 'ROLE_LOGIN', role, text: `${role} đã vào workspace demo.` });
     persist();
     location.hash = `#/workspace/${role}`;
     return;
@@ -183,6 +187,14 @@ root.addEventListener('click', (event) => {
     state = { ...state, activeRole: null };
     persist();
     location.hash = '#/';
+    return;
+  }
+
+  if (action === 'doctor-step') {
+    captureCurrentForm();
+    state = { ...state, ui: { ...state.ui, doctorStep: button.dataset.step } };
+    persist();
+    render();
     return;
   }
 
