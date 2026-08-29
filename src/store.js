@@ -1,65 +1,54 @@
-import { SCHEMA_VERSION, createDemoState } from './data.js';
+import { SCHEMA_VERSION, createDemoCase, createDemoState } from './data.js';
 
 const STORAGE_KEY = 'lungcare.phase1.state';
 const BACKUP_KEY = 'lungcare.phase1.backup';
+
+function normalizeCase(rawCase) {
+  return createDemoCase(rawCase || {});
+}
+
+function legacyCase(raw) {
+  return normalizeCase({
+    id: raw.patient?.id || 'DEMO-LC-001',
+    workflow: raw.workflow,
+    patient: raw.patient,
+    intake: raw.intake,
+    doctorReview: raw.doctorReview,
+    patientEducation: raw.patientEducation,
+    events: raw.events,
+  });
+}
 
 function normalizeState(raw) {
   const base = createDemoState();
   if (!raw || typeof raw !== 'object') return base;
 
-  const rawIntake = raw.intake || {};
-  const mergedIntake = {
-    ...base.intake,
-    ...rawIntake,
-    redFlags: { ...base.intake.redFlags, ...(rawIntake.redFlags || {}) },
-    medicationSafety: { ...base.intake.medicationSafety, ...(rawIntake.medicationSafety || {}) },
-    education: { ...base.intake.education, ...(rawIntake.education || {}) },
-    handoff: { ...base.intake.handoff, ...(rawIntake.handoff || {}) },
-  };
+  let cases;
+  let migratedFromLegacy = false;
+  if (Array.isArray(raw.cases) && raw.cases.length) {
+    cases = raw.cases.map(normalizeCase);
+  } else {
+    migratedFromLegacy = true;
+    const primary = legacyCase(raw);
+    cases = [primary, ...base.cases.slice(1)];
+  }
 
-  const mergedDoctor = {
-    ...base.doctorReview,
-    ...(raw.doctorReview || {}),
-    biomarkers: {
-      ...base.doctorReview.biomarkers,
-      ...((raw.doctorReview || {}).biomarkers || {}),
-    },
-  };
-
-  const rawPatientEducation = raw.patientEducation || {};
-  const mergedPatientEducation = {
-    ...base.patientEducation,
-    ...rawPatientEducation,
-    symptomReport: {
-      ...base.patientEducation.symptomReport,
-      ...(rawPatientEducation.symptomReport || {}),
-    },
-  };
-
+  const requestedActive = raw.activeCaseId;
+  const activeCaseId = cases.some(item => item.id === requestedActive) ? requestedActive : cases[0].id;
   const merged = {
-    ...base,
-    ...raw,
+    schemaVersion: SCHEMA_VERSION,
+    activeRole: raw.activeRole ?? base.activeRole,
+    activeCaseId,
     ui: { ...base.ui, ...(raw.ui || {}) },
-    workflow: { ...base.workflow, ...(raw.workflow || {}) },
-    patient: { ...base.patient, ...(raw.patient || {}) },
-    intake: mergedIntake,
-    doctorReview: mergedDoctor,
-    patientEducation: mergedPatientEducation,
-    events: Array.isArray(raw.events) ? raw.events : base.events,
+    cases,
   };
 
-  if (merged.schemaVersion < SCHEMA_VERSION) {
-    merged.schemaVersion = SCHEMA_VERSION;
-    merged.events = [
-      ...merged.events,
-      {
-        id: crypto.randomUUID(),
-        type: 'STATE_MIGRATED',
-        role: 'system',
-        text: `Đã migration dữ liệu lên schema v${SCHEMA_VERSION}.`,
-        at: new Date().toISOString(),
-      },
-    ];
+  if ((raw.schemaVersion || 0) < SCHEMA_VERSION || migratedFromLegacy) {
+    merged.cases = merged.cases.map((item, index) => index === 0 ? addEvent(item, {
+      type: 'STATE_MIGRATED',
+      role: 'system',
+      text: `Đã migration dữ liệu lên schema v${SCHEMA_VERSION} và mô hình multi-case.`,
+    }) : item);
   }
   return merged;
 }
@@ -67,7 +56,6 @@ function normalizeState(raw) {
 export function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return { state: createDemoState(), recovered: false, error: null };
-
   try {
     return { state: normalizeState(JSON.parse(raw)), recovered: false, error: null };
   } catch (error) {
@@ -92,12 +80,12 @@ export function resetState() {
   return fresh;
 }
 
-export function addEvent(state, { type, role, text }) {
+export function addEvent(caseState, { type, role, text }) {
   return {
-    ...state,
-    workflow: { ...state.workflow, updatedAt: new Date().toISOString() },
+    ...caseState,
+    workflow: { ...caseState.workflow, updatedAt: new Date().toISOString() },
     events: [
-      ...state.events,
+      ...(caseState.events || []),
       { id: crypto.randomUUID(), type, role, text, at: new Date().toISOString() },
     ],
   };

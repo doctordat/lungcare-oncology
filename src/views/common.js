@@ -1,4 +1,5 @@
 import { WORKFLOW_LABELS, getRoleTasks } from '../workflow.js';
+import { casePriority, queueCounts, waitingFor } from '../cases.js';
 
 export const ROLE_META = {
   doctor: { label: 'Bác sĩ', eyebrow: 'Doctor workspace' },
@@ -7,97 +8,44 @@ export const ROLE_META = {
 };
 
 export function escapeHtml(value = '') {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+  return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 }
 
 export function taskList(state, role) {
   const items = getRoleTasks(state, role);
-  return `
-    <section class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="eyebrow">Nhiệm vụ</div>
-          <h2>Việc cần làm</h2>
-        </div>
-        <span class="state-chip">${escapeHtml(WORKFLOW_LABELS[state.workflow.state] || state.workflow.state)}</span>
-      </div>
-      <div class="task-list">
-        ${items.map(task => `
-          <div class="task ${task.status}">
-            <div class="task-mark">${task.status === 'done' ? '✓' : task.status === 'active' ? '•' : '–'}</div>
-            <div>
-              <strong>${escapeHtml(task.title)}</strong>
-              <p>${escapeHtml(task.detail)}</p>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </section>`;
+  return `<section class="panel"><div class="panel-head"><div><div class="eyebrow">Nhiệm vụ</div><h2>Việc cần làm</h2></div><span class="state-chip">${escapeHtml(WORKFLOW_LABELS[state.workflow.state] || state.workflow.state)}</span></div><div class="task-list">${items.map(task => `<div class="task ${task.status}"><div class="task-mark">${task.status === 'done' ? '✓' : task.status === 'active' ? '•' : '–'}</div><div><strong>${escapeHtml(task.title)}</strong><p>${escapeHtml(task.detail)}</p></div></div>`).join('')}</div></section>`;
 }
 
 export function patientHeader(state) {
   const p = state.patient;
-  return `
-    <section class="patient-strip">
-      <div>
-        <div class="eyebrow">Ca bệnh hiện tại</div>
-        <h2>${escapeHtml(p.name)} <span class="demo-tag">DEMO</span></h2>
-        <p>${escapeHtml(p.id)} · ${p.age} tuổi · ECOG ${p.ecog} · ${escapeHtml(p.diagnosis)}</p>
-      </div>
-      <div class="tnm-box">
-        <span>TNM demo</span>
-        <strong>${escapeHtml(p.tnm)}</strong>
-        <small>${escapeHtml(p.stage)}</small>
-      </div>
-    </section>`;
+  return `<section class="patient-strip"><div><div class="eyebrow">Ca bệnh hiện tại</div><h2>${escapeHtml(p.name)} <span class="demo-tag">DEMO</span></h2><p>${escapeHtml(p.id)} · ${p.age} tuổi · ECOG ${p.ecog} · ${escapeHtml(p.diagnosis)}</p></div><div class="tnm-box"><span>TNM demo</span><strong>${escapeHtml(p.tnm)}</strong><small>${escapeHtml(p.stage)}</small></div></section>`;
 }
 
 export function timeline(state) {
   const events = [...state.events].reverse().slice(0, 6);
-  return `
-    <section class="panel">
-      <div class="eyebrow">Activity</div>
-      <h2>Dòng sự kiện</h2>
-      <div class="timeline">
-        ${events.map(event => `
-          <div class="timeline-item">
-            <span></span>
-            <div>
-              <strong>${escapeHtml(event.text)}</strong>
-              <small>${new Date(event.at).toLocaleString('vi-VN')}</small>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </section>`;
+  return `<section class="panel"><div class="eyebrow">Activity</div><h2>Dòng sự kiện</h2><div class="timeline">${events.map(event => `<div class="timeline-item"><span></span><div><strong>${escapeHtml(event.text)}</strong><small>${new Date(event.at).toLocaleString('vi-VN')}</small></div></div>`).join('')}</div></section>`;
+}
+
+export function teamQueue(state, role) {
+  const counts = queueCounts(state);
+  const rank = { urgent: 0, attention: 1, routine: 2 };
+  const filter = state.ui?.queueFilter || 'all';
+  const cases = [...state.cases]
+    .sort((a, b) => rank[casePriority(a)] - rank[casePriority(b)])
+    .filter(item => filter === 'all' || casePriority(item) === filter);
+  return `<section class="panel team-queue">
+    <div class="panel-head"><div><div class="eyebrow">Team dashboard</div><h2>Worklist</h2></div><span class="state-chip">${counts.total} ca</span></div>
+    <div class="queue-metrics"><div><strong>${counts.urgent}</strong><span>ưu tiên cao</span></div><div><strong>${role === 'doctor' ? counts.doctor : counts.nurse}</strong><span>chờ ${role === 'doctor' ? 'bác sĩ' : 'điều dưỡng'}</span></div></div>
+    <div class="queue-filters"><button data-action="queue-filter" data-filter="all" class="${filter === 'all' ? 'active' : ''}">Tất cả</button><button data-action="queue-filter" data-filter="urgent" class="${filter === 'urgent' ? 'active' : ''}">Ưu tiên</button><button data-action="queue-filter" data-filter="attention" class="${filter === 'attention' ? 'active' : ''}">Đang chờ</button></div>
+    <div class="queue-list">${cases.map(item => {
+      const priority = casePriority(item);
+      return `<button class="queue-case ${item.id === state.activeCaseId ? 'active' : ''} ${priority}" data-action="select-case" data-case-id="${escapeHtml(item.id)}"><span class="priority-dot"></span><span class="queue-copy"><strong>${escapeHtml(item.patient.name)}</strong><small>${escapeHtml(item.patient.id)} · ${escapeHtml(item.patient.diagnosis)}</small><em>Chờ: ${escapeHtml(waitingFor(item))}</em></span><b>${priority === 'urgent' ? '!' : '›'}</b></button>`;
+    }).join('')}</div>
+  </section>`;
 }
 
 export function workspaceShell(state, role, body) {
   const meta = ROLE_META[role];
-  return `
-    <div class="workspace-shell">
-      <header class="appbar">
-        <a class="brand" href="#/">LungCare <span>Oncology</span></a>
-        <div class="appbar-actions">
-          <span class="role-badge">${meta.label}</span>
-          <button class="ghost-btn" data-action="switch-role">Đổi vai trò</button>
-        </div>
-      </header>
-      <main class="workspace">
-        <div class="workspace-title">
-          <div>
-            <div class="eyebrow">${meta.eyebrow}</div>
-            <h1>${meta.label}</h1>
-          </div>
-          <div class="save-status" id="saveStatus">Đã lưu cục bộ</div>
-        </div>
-        ${patientHeader(state)}
-        ${body}
-      </main>
-    </div>`;
+  const staffQueue = role === 'nurse' ? `<div class="staff-queue-wide">${teamQueue(state, role)}</div>` : '';
+  return `<div class="workspace-shell"><header class="appbar"><a class="brand" href="#/">LungCare <span>Oncology</span></a><div class="appbar-actions"><span class="role-badge">${meta.label}</span><button class="ghost-btn" data-action="switch-role">Đổi vai trò</button></div></header><main class="workspace"><div class="workspace-title"><div><div class="eyebrow">${meta.eyebrow}</div><h1>${meta.label}</h1></div><div class="save-status" id="saveStatus">Đã lưu cục bộ</div></div>${staffQueue}${patientHeader(state)}${body}</main></div>`;
 }
