@@ -1,20 +1,26 @@
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
-export function createDemoState() {
-  return {
-    schemaVersion: SCHEMA_VERSION,
-    activeRole: null,
-    ui: {
-      doctorStep: 'overview',
-      nurseStep: 'overview',
-      patientStep: 'today',
-    },
-    workflow: {
-      state: 'NURSE_INTAKE',
-      updatedAt: new Date().toISOString(),
-    },
+const biomarkerDefaults = {
+  'EGFR': false,
+  'ALK': false,
+  'ROS1': false,
+  'BRAF V600E': false,
+  'KRAS G12C': false,
+  'MET exon 14': false,
+  'RET': false,
+  'NTRK': false,
+  'HER2 / ERBB2': false,
+  'PD-L1': false,
+};
+
+export function createDemoCase(overrides = {}) {
+  const now = new Date().toISOString();
+  const id = overrides.id || 'DEMO-LC-001';
+  const base = {
+    id,
+    workflow: { state: 'NURSE_INTAKE', updatedAt: now },
     patient: {
-      id: 'DEMO-LC-001',
+      id,
       synthetic: true,
       name: 'Nguyễn Văn Minh',
       age: 62,
@@ -35,12 +41,7 @@ export function createDemoState() {
       dyspnea: 'Nhẹ khi gắng sức',
       pain: 2,
       note: 'Ho kéo dài, đau ngực nhẹ, sụt 4 kg/2 tháng.',
-      redFlags: {
-        severeDyspnea: false,
-        majorHemoptysis: false,
-        alteredMentalStatus: false,
-        chestPainAcute: false,
-      },
+      redFlags: { severeDyspnea: false, majorHemoptysis: false, alteredMentalStatus: false, chestPainAcute: false },
       escalationAcknowledged: false,
       medicationSafety: {
         allergiesReviewed: false,
@@ -49,12 +50,7 @@ export function createDemoState() {
         currentMedications: 'Amlodipine 5 mg mỗi ngày (demo).',
         interactionConcern: '',
       },
-      education: {
-        identityConfirmed: false,
-        teachBackCompleted: false,
-        supportPerson: '',
-        educationNote: '',
-      },
+      education: { identityConfirmed: false, teachBackCompleted: false, supportPerson: '', educationNote: '' },
       handoff: {
         situation: 'Nghi ung thư phổi, đang chờ hoàn tất đánh giá bác sĩ.',
         background: 'Nam 62 tuổi, 35 pack-year, ECOG 1.',
@@ -73,18 +69,7 @@ export function createDemoState() {
       n2Status: 'suspected',
       nodalConfirmationPlan: '',
       biomarkerStatus: 'pending',
-      biomarkers: {
-        'EGFR': false,
-        'ALK': false,
-        'ROS1': false,
-        'BRAF V600E': false,
-        'KRAS G12C': false,
-        'MET exon 14': false,
-        'RET': false,
-        'NTRK': false,
-        'HER2 / ERBB2': false,
-        'PD-L1': false,
-      },
+      biomarkers: { ...biomarkerDefaults },
       mdtDecision: '',
       plan: 'Chờ hoàn tất đánh giá mô bệnh học/hạch trung thất và hội chẩn MDT.',
       completed: false,
@@ -92,27 +77,86 @@ export function createDemoState() {
     patientEducation: {
       acknowledged: false,
       medicationAcknowledged: false,
-      symptomReport: {
-        dyspnea: 'Không tăng',
-        pain: 2,
-        fever: false,
-        hemoptysis: false,
-        confusion: false,
-        chestPain: false,
-        note: '',
-        submittedAt: null,
-      },
+      symptomReport: { dyspnea: 'Không tăng', pain: 2, fever: false, hemoptysis: false, confusion: false, chestPain: false, note: '', submittedAt: null },
       teamMessage: '',
       messageSentAt: null,
     },
-    events: [
-      {
-        id: crypto.randomUUID(),
-        type: 'CASE_CREATED',
-        role: 'system',
-        text: 'Khởi tạo ca bệnh demo.',
-        at: new Date().toISOString(),
-      },
-    ],
+    events: [{ id: crypto.randomUUID(), type: 'CASE_CREATED', role: 'system', text: 'Khởi tạo ca bệnh demo.', at: now }],
+  };
+
+  return {
+    ...base,
+    ...overrides,
+    workflow: { ...base.workflow, ...(overrides.workflow || {}) },
+    patient: { ...base.patient, ...(overrides.patient || {}) },
+    intake: {
+      ...base.intake,
+      ...(overrides.intake || {}),
+      redFlags: { ...base.intake.redFlags, ...((overrides.intake || {}).redFlags || {}) },
+      medicationSafety: { ...base.intake.medicationSafety, ...((overrides.intake || {}).medicationSafety || {}) },
+      education: { ...base.intake.education, ...((overrides.intake || {}).education || {}) },
+      handoff: { ...base.intake.handoff, ...((overrides.intake || {}).handoff || {}) },
+    },
+    doctorReview: {
+      ...base.doctorReview,
+      ...(overrides.doctorReview || {}),
+      biomarkers: { ...base.doctorReview.biomarkers, ...((overrides.doctorReview || {}).biomarkers || {}) },
+    },
+    patientEducation: {
+      ...base.patientEducation,
+      ...(overrides.patientEducation || {}),
+      symptomReport: { ...base.patientEducation.symptomReport, ...((overrides.patientEducation || {}).symptomReport || {}) },
+    },
+    events: Array.isArray(overrides.events) ? overrides.events : base.events,
+  };
+}
+
+function sampleCases() {
+  const waitingDoctor = createDemoCase({
+    id: 'DEMO-LC-002',
+    patient: { id: 'DEMO-LC-002', name: 'Trần Thị Lan', age: 58, sex: 'Nữ', smokingPackYears: 0, ecog: 1, diagnosis: 'NSCLC — adenocarcinoma (demo)', tnm: 'cT2a N1 M0', stage: 'Giai đoạn IIB (demo)' },
+    workflow: { state: 'READY_FOR_DOCTOR' },
+    intake: {
+      completed: true,
+      note: 'Đã hoàn tất intake và SBAR; chờ bác sĩ đánh giá.',
+      medicationSafety: { allergiesReviewed: true, medicationsReviewed: true },
+      education: { identityConfirmed: true, teachBackCompleted: true },
+      handoff: { assessment: 'Ổn định, không có red flag tại thời điểm bàn giao.' },
+    },
+  });
+
+  const urgentFollowup = createDemoCase({
+    id: 'DEMO-LC-003',
+    patient: { id: 'DEMO-LC-003', name: 'Lê Văn Hùng', age: 67, sex: 'Nam', smokingPackYears: 45, ecog: 2, diagnosis: 'NSCLC đang theo dõi (demo)', tnm: 'cT3 N2 M0', stage: 'Giai đoạn IIIB (demo)' },
+    workflow: { state: 'PATIENT_ACKNOWLEDGED' },
+    intake: {
+      completed: true,
+      medicationSafety: { allergiesReviewed: true, medicationsReviewed: true },
+      education: { identityConfirmed: true, teachBackCompleted: true },
+      handoff: { assessment: 'Đã hoàn tất intake trước đó.' },
+    },
+    doctorReview: { diagnosisConfirmed: true, pathologyReviewed: true, stagingReviewed: true, n2Status: 'confirmed', mdtDecision: 'Theo dõi sát triệu chứng và tái đánh giá theo kế hoạch demo.', plan: 'Theo dõi triệu chứng tại nhà và liên hệ team khi có thay đổi.', completed: true },
+    patientEducation: {
+      acknowledged: true,
+      medicationAcknowledged: true,
+      symptomReport: { dyspnea: 'Tăng nhiều', pain: 5, hemoptysis: false, confusion: false, chestPain: true, note: 'Đau ngực tăng và khó thở hơn sáng nay.', submittedAt: nowString() },
+    },
+  });
+
+  return [createDemoCase(), waitingDoctor, urgentFollowup];
+}
+
+function nowString() {
+  return new Date().toISOString();
+}
+
+export function createDemoState() {
+  const cases = sampleCases();
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    activeRole: null,
+    activeCaseId: cases[0].id,
+    ui: { doctorStep: 'overview', nurseStep: 'overview', patientStep: 'today', queueFilter: 'all' },
+    cases,
   };
 }
