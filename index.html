@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LungCare Oncology — Clinical Decision Support Demo</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#162033;--muted:#6b7280;--line:#e5e7eb;--brand:#1d4ed8;--brand2:#dbeafe;--ok:#166534;--okbg:#dcfce7;--warn:#92400e;--warnbg:#fef3c7;--danger:#991b1b;--dangerbg:#fee2e2}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+.app{min-height:100vh;display:grid;grid-template-columns:260px 1fr}.side{background:#0f172a;color:#fff;padding:28px 20px;position:sticky;top:0;height:100vh}.logo{font-weight:800;font-size:22px}.sub{font-size:13px;color:#cbd5e1;margin-top:6px;line-height:1.45}.nav{margin-top:28px;display:grid;gap:8px}.nav button{all:unset;padding:11px 12px;border-radius:10px;color:#cbd5e1;cursor:pointer}.nav button.active,.nav button:hover{background:#1e293b;color:#fff}.side-note{position:absolute;left:20px;right:20px;bottom:22px;font-size:12px;color:#94a3b8;line-height:1.45}
+main{padding:30px;max-width:1400px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:20px}.top h1{margin:0;font-size:30px}.top p{margin:8px 0 0;color:var(--muted)}.badge{padding:8px 12px;border-radius:999px;background:var(--brand2);color:var(--brand);font-weight:700;font-size:12px;white-space:nowrap}.alert{border:1px solid #bfdbfe;background:#eff6ff;padding:14px 16px;border-radius:14px;color:#1e3a8a;font-size:13px;line-height:1.5;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 6px 20px rgba(15,23,42,.04)}.card h2{margin:0 0 16px;font-size:18px}.section{margin-top:18px}.section:first-child{margin-top:0}.section h3{font-size:14px;margin:0 0 10px;color:#334155}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{display:grid;gap:6px}.field.full{grid-column:1/-1}label{font-size:12px;font-weight:700;color:#475569}input,select,textarea{width:100%;border:1px solid #dbe1ea;border-radius:11px;padding:10px 11px;font:inherit;background:#fff;color:#111827}textarea{min-height:80px;resize:vertical}.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{border:1px solid var(--line);padding:8px 10px;border-radius:999px;font-size:12px;cursor:pointer;background:#fff}.chip.active{background:#e0ecff;border-color:#93c5fd;color:#1d4ed8;font-weight:700}.actions{display:flex;gap:10px;margin-top:16px}.btn{border:0;border-radius:11px;padding:11px 14px;font-weight:800;cursor:pointer}.btn.primary{background:var(--brand);color:#fff}.btn.secondary{background:#eef2f7;color:#334155}.summary{display:grid;gap:12px}.result{border:1px solid var(--line);border-radius:14px;padding:14px}.result strong{display:block;margin-bottom:5px}.muted{color:var(--muted);font-size:13px;line-height:1.45}.pill{display:inline-block;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800}.pill.ok{background:var(--okbg);color:var(--ok)}.pill.warn{background:var(--warnbg);color:var(--warn)}.pill.danger{background:var(--dangerbg);color:var(--danger)}.flow{display:grid;gap:10px}.step{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:flex-start}.num{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#e2e8f0;font-weight:800}.step.active .num{background:#dbeafe;color:#1d4ed8}.step .body{border-bottom:1px dashed #e5e7eb;padding-bottom:10px}.step:last-child .body{border-bottom:0}.mini{font-size:12px;color:var(--muted);margin-top:4px}.footer-note{font-size:11px;color:#94a3b8;margin-top:12px;line-height:1.45}@media(max-width:980px){.app{grid-template-columns:1fr}.side{position:relative;height:auto}.side-note{position:static;margin-top:20px}.grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo">LungCare Oncology</div>
+    <div class="sub">Clinical decision-support demo for lung cancer evaluation and longitudinal care.</div>
+    <div class="nav">
+      <button class="active">Hồ sơ ca bệnh</button>
+      <button>Chẩn đoán & staging</button>
+      <button>Xét nghiệm mô học / gen</button>
+      <button>Kế hoạch xử trí</button>
+      <button>Theo dõi dọc</button>
+    </div>
+    <div class="side-note">Prototype only. Không thay thế đánh giá của bác sĩ, hội chẩn đa chuyên khoa hoặc quy trình HIS/EMR.</div>
+  </aside>
+  <main>
+    <div class="top">
+      <div><h1>Đánh giá ung thư phổi</h1><p>Nhập dữ liệu bệnh nhân → phân tầng chẩn đoán → TNM → xét nghiệm cần thiết → bước tiếp theo.</p></div>
+      <div class="badge">DEMO / SYNTHETIC DATA</div>
+    </div>
+    <div class="alert"><b>Phạm vi:</b> Đây là công cụ hỗ trợ quyết định lâm sàng demo. Kết quả là gợi ý có cấu trúc, không phải chẩn đoán xác định hay y lệnh tự động.</div>
+    <div class="grid">
+      <section class="card">
+        <h2>1. Dữ liệu bệnh nhân</h2>
+        <div class="section">
+          <h3>Thông tin cơ bản</h3>
+          <div class="form-grid">
+            <div class="field"><label>Tuổi</label><input id="age" type="number" value="62"></div>
+            <div class="field"><label>Giới</label><select id="sex"><option>Nam</option><option>Nữ</option><option>Khác</option></select></div>
+            <div class="field"><label>Tiền sử hút thuốc (pack-year)</label><input id="pack" type="number" value="35"></div>
+            <div class="field"><label>ECOG</label><select id="ecog"><option>0</option><option selected>1</option><option>2</option><option>3</option><option>4</option></select></div>
+            <div class="field full"><label>Triệu chứng chính</label><textarea id="symptoms">Ho kéo dài, đau ngực nhẹ, sụt 4 kg/2 tháng.</textarea></div>
+          </div>
+        </div>
+        <div class="section">
+          <h3>Hình ảnh học</h3>
+          <div class="form-grid">
+            <div class="field"><label>Kích thước u lớn nhất (cm)</label><input id="size" type="number" step="0.1" value="4.8"></div>
+            <div class="field"><label>Vị trí</label><select id="site"><option>Thùy trên phổi phải</option><option>Thùy giữa phổi phải</option><option>Thùy dưới phổi phải</option><option>Thùy trên phổi trái</option><option>Thùy dưới phổi trái</option></select></div>
+            <div class="field"><label>Hạch vùng nghi ngờ</label><select id="node"><option value="N0">Không</option><option value="N1">Cùng bên quanh phế quản / rốn phổi</option><option value="N2" selected>Trung thất cùng bên / dưới carina</option><option value="N3">Trung thất đối bên / thượng đòn</option></select></div>
+            <div class="field"><label>Di căn xa</label><select id="met"><option value="M0" selected>Chưa thấy</option><option value="M1a">M1a</option><option value="M1b">M1b</option><option value="M1c">M1c</option></select></div>
+            <div class="field full"><label>Đặc điểm xâm lấn / ghi chú CT-PET</label><textarea id="imaging">Khối u 4.8 cm, nghi hạch trung thất cùng bên; chưa ghi nhận tổn thương di căn xa rõ.</textarea></div>
+          </div>
+        </div>
+        <div class="section">
+          <h3>Mô bệnh học hiện có</h3>
+          <div class="chips" id="histChips">
+            <button class="chip active" data-value="NSCLC">Nghi NSCLC</button>
+            <button class="chip" data-value="SCLC">Nghi SCLC</button>
+            <button class="chip" data-value="UNKNOWN">Chưa có mô học</button>
+          </div>
+        </div>
+        <div class="actions"><button class="btn primary" onclick="analyze()">Phân tích ca bệnh</button><button class="btn secondary" onclick="loadExample()">Nạp ca mẫu</button></div>
+      </section>
+
+      <aside class="summary">
+        <section class="card"><h2>2. Tóm tắt lâm sàng</h2><div id="summaryBox" class="result"><strong>Chưa phân tích</strong><div class="muted">Nhấn “Phân tích ca bệnh” để tạo tóm tắt.</div></div></section>
+        <section class="card"><h2>3. Định hướng staging</h2><div id="stageBox" class="result"><strong>—</strong><div class="muted">Hệ thống sẽ hiển thị cTNM ước tính từ dữ liệu demo.</div></div></section>
+        <section class="card"><h2>4. Xét nghiệm tiếp theo</h2><div id="testBox" class="flow"></div></section>
+        <section class="card"><h2>5. Bước xử trí tiếp theo</h2><div id="planBox" class="result"><strong>—</strong><div class="muted">Chưa có khuyến nghị.</div></div><div class="footer-note">Mọi quyết định điều trị cần xác nhận bởi bác sĩ điều trị và MDT, đồng thời đối chiếu guideline hiện hành và bối cảnh bệnh nhân.</div></section>
+      </aside>
+    </div>
+  </main>
+</div>
+<script>
+let histology='NSCLC';
+document.querySelectorAll('#histChips .chip').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('#histChips .chip').forEach(b=>b.classList.remove('active'));btn.classList.add('active');histology=btn.dataset.value;}));
+function tFromSize(s){if(s<=1)return'T1a';if(s<=2)return'T1b';if(s<=3)return'T1c';if(s<=4)return'T2a';if(s<=5)return'T2b';if(s<=7)return'T3';return'T4'}
+function stageGroup(t,n,m){if(m!=='M0')return'Giai đoạn IV';if(n==='N3')return'Giai đoạn IIIC';if(n==='N2')return t==='T1a'||t==='T1b'||t==='T1c'?'Giai đoạn IIIA':'Giai đoạn IIIB';if(n==='N1')return'Giai đoạn II–IIIA';if(n==='N0'){if(['T1a','T1b','T1c'].includes(t))return'Giai đoạn I';if(['T2a','T2b'].includes(t))return'Giai đoạn II';return'Giai đoạn IIIA'}return'Chưa xác định'}
+function analyze(){
+ const age=+document.getElementById('age').value||0, pack=+document.getElementById('pack').value||0, ecog=document.getElementById('ecog').value, size=+document.getElementById('size').value||0, n=document.getElementById('node').value, m=document.getElementById('met').value;
+ const t=tFromSize(size), stage=stageGroup(t,n,m); const smoke=pack>=20?'nguy cơ hút thuốc đáng kể':'tiền sử hút thuốc thấp/không rõ';
+ document.getElementById('summaryBox').innerHTML=`<span class="pill warn">CẦN XÁC NHẬN</span><strong style="margin-top:8px">${age} tuổi • ECOG ${ecog} • ${histology}</strong><div class="muted">Khối u ${size.toFixed(1)} cm, ${n}, ${m}; ${smoke}. Tóm tắt này được tạo từ dữ liệu nhập, không thay thế kết luận bệnh án.</div>`;
+ document.getElementById('stageBox').innerHTML=`<span class="pill ok">cTNM ƯỚC TÍNH</span><strong style="margin-top:8px">${t} ${n} ${m} → ${stage}</strong><div class="muted">Cần xác nhận bằng đánh giá hình ảnh đầy đủ, mô bệnh học và đánh giá hạch xâm lấn khi phù hợp.</div>`;
+ let tests=[];
+ if(histology==='UNKNOWN') tests=[['Xác nhận mô bệnh học','Ưu tiên sinh thiết vị trí cho chẩn đoán và staging với thủ thuật ít xâm lấn nhất có giá trị cao.'],['Đánh giá hạch trung thất','Cân nhắc EBUS/EUS hoặc phương án lấy mẫu phù hợp nếu hạch ảnh hưởng staging.'],['Hoàn tất staging','PET/CT và MRI não khi có chỉ định theo bối cảnh lâm sàng.']];
+ else if(histology==='NSCLC') tests=[['Pathology panel','Xác nhận subtype, IHC phù hợp và độ đầy đủ mẫu.'],['Biomarker / molecular testing','Nếu bệnh tiến xa hoặc phù hợp bối cảnh, đánh giá các driver có ý nghĩa điều trị và PD-L1 theo guideline hiện hành.'],['Staging completeness','Xác nhận hạch nghi N2 bằng thủ thuật xâm lấn nếu kết quả làm thay đổi chiến lược điều trị.']];
+ else tests=[['Xác nhận SCLC','Mô bệnh học đầy đủ; phân biệt limited-stage và extensive-stage.'],['Đánh giá di căn','Hoàn tất hình ảnh staging, bao gồm não khi có chỉ định.'],['Đánh giá khả năng điều trị phối hợp','Xem xét ECOG, chức năng cơ quan và khả năng hóa-xạ trị đồng thời nếu limited-stage.']];
+ document.getElementById('testBox').innerHTML=tests.map((x,i)=>`<div class="step ${i===0?'active':''}"><div class="num">${i+1}</div><div class="body"><b>${x[0]}</b><div class="mini">${x[1]}</div></div></div>`).join('');
+ let plan='';
+ if(histology==='SCLC') plan=m==='M0'?'Nếu xác nhận SCLC khu trú: chuyển MDT ung bướu–xạ trị để đánh giá hóa-xạ trị phối hợp và kế hoạch staging hoàn chỉnh.':'Nếu xác nhận SCLC lan tràn: đánh giá điều trị toàn thân và chăm sóc hỗ trợ theo guideline hiện hành.';
+ else if(histology==='NSCLC' && n==='N2' && m==='M0') plan='Mẫu hình gợi ý NSCLC không di căn xa nhưng có hạch N2: ưu tiên xác nhận mô học/hạch, hoàn tất staging và MDT để quyết định chiến lược đa mô thức thay vì tự động chuyển thẳng sang phẫu thuật.';
+ else if(histology==='NSCLC' && m!=='M0') plan='Nếu NSCLC di căn xa được xác nhận: ưu tiên profiling phân tử/PD-L1, đánh giá triệu chứng cần xử trí khẩn và lựa chọn điều trị toàn thân theo biomarker.';
+ else if(histology==='UNKNOWN') plan='Chưa đủ dữ liệu để định hướng điều trị. Bước ưu tiên là lấy mô bệnh học từ vị trí có giá trị chẩn đoán và staging cao nhất với nguy cơ thủ thuật chấp nhận được.';
+ else plan='Hoàn tất staging và xác nhận mô bệnh học trước MDT; cân nhắc phẫu thuật, xạ trị hoặc điều trị đa mô thức tùy giai đoạn và khả năng phẫu thuật.';
+ document.getElementById('planBox').innerHTML=`<span class="pill danger">MDT REQUIRED</span><strong style="margin-top:8px">Khuyến nghị bước tiếp theo</strong><div class="muted">${plan}</div>`;
+}
+function loadExample(){document.getElementById('age').value=62;document.getElementById('pack').value=35;document.getElementById('ecog').value='1';document.getElementById('size').value=4.8;document.getElementById('node').value='N2';document.getElementById('met').value='M0';histology='NSCLC';document.querySelectorAll('#histChips .chip').forEach(b=>b.classList.toggle('active',b.dataset.value==='NSCLC'));analyze()}
+loadExample();
+</script>
+</body>
+</html>
