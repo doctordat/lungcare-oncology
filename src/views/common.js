@@ -46,5 +46,6 @@ export function teamQueue(state, role) {
 
 export function workspaceShell(state, role, body) {
   const meta = ROLE_META[role];
-  return `<div class="workspace-shell"><header class="appbar"><a class="brand" href="#/">LungCare <span>Oncology</span></a><div class="appbar-actions"><span class="role-badge">${meta.label}</span><button class="ghost-btn" data-action="switch-role">Đổi vai trò</button></div></header><main class="workspace"><div class="workspace-title"><div><div class="eyebrow">${meta.eyebrow}</div><h1>${meta.label}</h1></div><div class="save-status" id="saveStatus">Đã lưu cục bộ</div></div>${patientHeader(state)}${body}</main></div>`;
+  const staffQueue = role === 'nurse' ? `<div class="staff-queue-wide">${teamQueue(state, role)}</div>` : '';
+  return `<div class="workspace-shell"><header class="appbar"><a class="brand" href="#/">LungCare <span>Oncology</span></a><div class="appbar-actions"><span class="role-badge">${meta.label}</span><button class="ghost-btn" data-action="switch-role">Đổi vai trò</button></div></header><main class="workspace"><div class="workspace-title"><div><div class="eyebrow">${meta.eyebrow}</div><h1>${meta.label}</h1></div><div class="save-status" id="saveStatus">Đã lưu cục bộ</div></div>${staffQueue}${patientHeader(state)}${body}</main></div>`;
 }
