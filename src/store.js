@@ -26,6 +26,16 @@ function normalizeState(raw) {
     },
   };
 
+  const rawPatientEducation = raw.patientEducation || {};
+  const mergedPatientEducation = {
+    ...base.patientEducation,
+    ...rawPatientEducation,
+    symptomReport: {
+      ...base.patientEducation.symptomReport,
+      ...(rawPatientEducation.symptomReport || {}),
+    },
+  };
+
   const merged = {
     ...base,
     ...raw,
@@ -34,7 +44,7 @@ function normalizeState(raw) {
     patient: { ...base.patient, ...(raw.patient || {}) },
     intake: mergedIntake,
     doctorReview: mergedDoctor,
-    patientEducation: { ...base.patientEducation, ...(raw.patientEducation || {}) },
+    patientEducation: mergedPatientEducation,
     events: Array.isArray(raw.events) ? raw.events : base.events,
   };
 
